@@ -35,6 +35,7 @@ import com.alibaba.polardbx.gms.topology.StorageInfoRecord;
 import com.alibaba.polardbx.gms.util.GmsJdbcUtil;
 import com.alibaba.polardbx.gms.util.InstIdUtil;
 import com.alibaba.polardbx.gms.util.PasswdUtil;
+import com.alibaba.polardbx.common.exception.TddlRuntimeException;
 import com.google.common.base.Splitter;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -70,8 +71,18 @@ public final class TddlLauncher {
                 initPolarxRootUser(config);
                 System.err.println("Initialize polardbx success");
                 System.exit(0);
+            } catch (TddlRuntimeException e) {  
+                // Error at Mysql root connection step, for example remote access, password
+                logger.error("createConnection failed: " + e);
+                e.printStackTrace();
+                Thread.sleep(1500);
+                System.exit(1);
             } catch (SQLException e) {
+                // Sql operation errors. One special case is drop user (my_polarx) in Mysql 8.0
+                // Access denied; you need (at least one of) the SYSTEM_USER privilege(s) for this operation
                 logger.error("initialize gms failed due to: " + e);
+                e.printStackTrace();
+                Thread.sleep(1500);            // Wait 1.5s for AsyncROOT logger to flush log.
                 System.exit(1);
             }
         }
